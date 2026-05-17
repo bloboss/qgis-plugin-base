@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qgis-plugin-base"
+version = "0.0.1"
+description = "QGIS Plugin Template"
+readme = "README.md"
+license = { text = "GPL-2.0-or-later" }
+requires-python = ">=3.9"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0",
+    "httpx>=0.24.0",
+    "toml>=0.10.2",
+    "gitpython>=3.1.0",
+]
+
+[project.optional-dependencies]
+# Include Qt tooling when installing the admin tool for full build support:
+#   uv tool install ".[qt]"
+qt = [
+    "pyqt5>=5.15",
+]
+
+[project.scripts]
+# Registers the `admin` CLI so `uv tool install .` (or `uv tool install ".[qt]"`)
+# makes `admin <command>` available on PATH.
+admin = "admin:app"
+
+# ---------------------------------------------------------------------------
+# Build configuration: package admin.py as a standalone Python module.
+# The QGIS plugin source under src/ is NOT included here — it is deployed to
+# the QGIS plugins directory by `admin install`, not installed as a Python pkg.
+# ---------------------------------------------------------------------------
+[tool.setuptools]
+py-modules = ["admin"]
+packages = []
+
+# ---------------------------------------------------------------------------
+# uv development environment
+# Run `uv sync` to create .venv with all tools needed for development.
+# ---------------------------------------------------------------------------
+[tool.uv]
+dev-dependencies = [
+    # Qt resource compiler (pyrcc5) — needed for `admin compile-resources`
+    "pyqt5>=5.15",
+    # Testing
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    # Linting / formatting hooks
+    "pre-commit>=3.0",
+    # Documentation
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.0",
+    "mkdocs-video>=1.5",
+    "mkdocs-git-revision-date-localized-plugin>=1.2",
+]
