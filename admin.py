@@ -4,6 +4,7 @@
 """
 
 import os
+import sys
 
 import configparser
 import datetime as dt
@@ -21,7 +22,12 @@ import httpx
 import toml
 import typer
 
-LOCAL_ROOT_DIR = Path(__file__).parent.resolve()
+# When installed as a uv tool, __file__ lives in site-packages rather than the
+# project root. Fall back to cwd so `admin install` works when run from the
+# plugin project directory.
+_script_dir = Path(__file__).parent.resolve()
+LOCAL_ROOT_DIR = _script_dir if (_script_dir / "config.json").is_file() else Path.cwd()
+
 SRC_NAME = "qgis_plugin_template"
 PACKAGE_NAME = SRC_NAME.replace("_", "")
 TEST_FILES = ["test", "test_suite.py", "docker-compose.yml", "scripts"]
@@ -135,7 +141,7 @@ def uninstall(context: typer.Context):
 @app.command()
 def generate_zip(
     context: typer.Context,
-    version: str = None,
+    version: typing.Optional[str] = None,
     output_directory: typing.Optional[Path] = LOCAL_ROOT_DIR / "dist",
 ):
     """Generates plugin zip folder, that can be used to installed the
@@ -274,7 +280,17 @@ def compile_resources(
     target_path = output_directory / "resources.py"
     target_path.parent.mkdir(parents=True, exist_ok=True)
     _log(f"compile_resources target_path: {target_path}", context=context)
-    subprocess.run(shlex.split(f"pyrcc5 -o {target_path} {resources_path}"))
+    _venv_pyrcc5 = Path(sys.executable).parent / "pyrcc5"
+    pyrcc5_cmd = shutil.which("pyrcc5") or (str(_venv_pyrcc5) if _venv_pyrcc5.is_file() else None)
+    if pyrcc5_cmd is None:
+        typer.echo(
+            "pyrcc5 not found. Install PyQt5 via:\n"
+            "  uv sync                  (project dev env, then: uv run admin ...)\n"
+            "  uv tool install '.[qt]'  (global admin tool with Qt support)",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    subprocess.run([pyrcc5_cmd, "-o", str(target_path), str(resources_path)], check=True)
 
 
 @app.command()
